@@ -1,7 +1,8 @@
 # AI-Boyfriend-Timeline-
 Visualizing the timeline of relationships with AI Companionships 
 
-May 19th: V1 - Visualizations
+ ## May 19th: V1 - Visualizations
+
 Organizing data to see patterns and gain inspiration for more intricate visualization opportunities. 
 
 Spiral Timelines:
