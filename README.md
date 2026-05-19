@@ -1,9 +1,11 @@
 # AI-Boyfriend-Timeline-
 Visualizing the timeline of relationships with AI Companionships 
 
+LINK: https://averythompson7.github.io/AI-Boyfriend-Timeline/
+
  ## May 19th: V1 - Visualizations
 
-Organizing data to see patterns and gain inspiration for more intricate visualization opportunities. 
+Organizing data to see patterns and gain inspiration for more intricate visualization opportunities. This is with incomplete V1 data 
 
 Spiral Timelines:
 - for each individual participant, showing the evolution of thier relationship 
