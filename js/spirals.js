@@ -57,7 +57,16 @@ class Timeline {
     wrangleData() {
         let vis = this;
         d3.csv(vis.data).then(function(data) {
-            data.sort((a, b) => +a.ID - +b.ID);
+            // normalize / trim fields so phase matching is reliable (trailing-space issues)
+            data.forEach(d => {
+                d.ID = +d.ID;
+                if (d.P_ID) d.P_ID = d.P_ID.trim();
+                if (d.phase) d.phase = d.phase.trim();
+                if (d.milestone_name) d.milestone_name = d.milestone_name.trim();
+                if (d.quote) d.quote = d.quote.trim();
+            });
+
+            data.sort((a, b) => a.ID - b.ID);
             vis.fullData = data;
 
             vis.activePhases     = new Set(data.map(d => d.phase));
