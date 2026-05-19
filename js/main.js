@@ -2,8 +2,8 @@ let timeline = new Timeline("v1_timeline", "data/timeline_data_v1.csv");
 
 
 const sankey = new Sankey("data/timeline_data_v1.csv", "#sankey", {
-    width: 1100,
-    height: 420
+    width: 1400,
+    height: 600
 });
 
 timeline.initVis();

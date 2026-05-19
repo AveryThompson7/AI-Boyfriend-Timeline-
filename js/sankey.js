@@ -3,8 +3,8 @@ class Sankey {
         this.dataPath = dataPath;
         this.parentSelector = parentSelector;
         this.options = Object.assign({
-            width: 900,
-            height: 360,
+            width: 1200,
+            height: 500,
             margin: { top: 10, right: 10, bottom: 10, left: 10 },
             phases: ["Pre-relationship", "Experimentation", "Realization", "Deepening", "Commitment", "Model disruption"]
         }, opts);
@@ -54,6 +54,14 @@ class Sankey {
     wrangleData() {
         let vis = this;
         d3.csv(vis.dataPath).then(data => {
+            // trim CSV fields to avoid whitespace mismatches
+            data.forEach(d => {
+                d.ID = +d.ID;
+                if (d.P_ID) d.P_ID = d.P_ID.trim();
+                if (d.phase) d.phase = d.phase.trim();
+                if (d.milestone_name) d.milestone_name = d.milestone_name.trim();
+            });
+
             // ensure numeric ID for sorting
             data.forEach(d => d._ID = +d.ID);
 
@@ -64,7 +72,8 @@ class Sankey {
 
             // Dynamic containers for dynamic sequence nodes and links
             const nodeMap = new Map();     // "Step X: PhaseName" -> Node metadata object
-            const linkCounts = new Map();  // "SourceNode||TargetNode" -> Link metadata object
+                const linkCounts = new Map();  // "SourceNode||TargetNode" -> Link metadata object
+                const linkPIDs = new Map();    // "SourceNode||TargetNode" -> Set of P_IDs
 
             byPerson.forEach((entries, pid) => {
                 //  sort participant's events using the P_ID
@@ -85,16 +94,15 @@ class Sankey {
                             step: stepNum,
                             count: 0,
                             milestones: new Set(),
-                            sampleQuotes: []
+                            sampleQuotes: [],
+                            pids: new Set()
                         });
                     }
 
                     const node = nodeMap.get(sequenceNodeName);
                     node.count += 1;
                     if (e.milestone_name) node.milestones.add(e.milestone_name);
-                    if (e.quote && node.sampleQuotes.length < 5) {
-                        node.sampleQuotes.push(e.quote);
-                    }
+                    node.pids.add(pid);
                 });
 
                 // Transitions between sequential phases for this person
@@ -111,13 +119,13 @@ class Sankey {
                     const key = `${fromNodeName}||${toNodeName}`;
                     if (!linkCounts.has(key)) {
                         linkCounts.set(key, { value: 0, sampleQuotes: [] });
+                        linkPIDs.set(key, new Set());
                     }
 
                     const rec = linkCounts.get(key);
                     rec.value += 1;
-                    if (validEntries[i + 1].quote && rec.sampleQuotes.length < 3) {
-                        rec.sampleQuotes.push(validEntries[i + 1].quote);
-                    }
+                    // Track which P_IDs are associated with this link
+                    linkPIDs.get(key).add(pid);
                 }
             });
 
@@ -138,7 +146,7 @@ class Sankey {
                     phase: meta.phase,
                     value: meta.count,
                     milestones: Array.from(meta.milestones).sort(),
-                    sampleQuotes: meta.sampleQuotes
+                    pids: Array.from(meta.pids).sort()
                 };
             });
 
@@ -155,7 +163,7 @@ class Sankey {
                     source,
                     target,
                     value: v.value,
-                    sampleQuotes: v.sampleQuotes
+                    pids: Array.from(linkPIDs.get(key)).sort()
                 });
             });
 
@@ -202,8 +210,7 @@ class Sankey {
             .style("opacity", 0.6)
             .on("mouseover", function(event, d) {
                 vis.tooltip.style("visibility", "visible")
-                    .html(`<strong>Transition</strong><br>${d.source.name} → ${d.target.name}<br>Count: ${d.value}
-                        ${d.sampleQuotes && d.sampleQuotes.length ? `<br><em>Sample quote:</em> "${d.sampleQuotes[0].slice(0,200)}${d.sampleQuotes[0].length>200?'…':''}"` : ''}`);
+                    .html(`<strong>Transition</strong><br>${d.source.name} → ${d.target.name}<br>Count: ${d.value}<br><em>P_IDs:</em> ${d.pids ? d.pids.join(', ') : '(none)'}`);
             })
             .on("mousemove", function(event) {
                 vis.tooltip.style("left", (event.pageX + 12) + "px")
@@ -227,9 +234,8 @@ class Sankey {
             .style("opacity", 0.95)
             .on("mouseover", function(event, d) {
                 const subs = d.milestones && d.milestones.length ? d.milestones.slice(0,20).join(", ") : "(none)";
-                const quotes = d.sampleQuotes && d.sampleQuotes.length ? `<br><em>Sample:</em> "${d.sampleQuotes[0].slice(0,200)}${d.sampleQuotes[0].length>200?'…':''}"` : "";
-                vis.tooltip.style("visibility", "visible")
-                    .html(`<strong>${d.name}</strong><br>Events: ${d.value}<br><em>milestones:</em> ${subs}${quotes}`);
+                    vis.tooltip.style("visibility", "visible")
+                        .html(`<strong>${d.name}</strong><br>Events: ${d.value}<br><em>Milestones:</em> ${subs}<br><em>P_IDs:</em> ${d.pids ? d.pids.join(', ') : '(none)'}`);
             })
             .on("mousemove", function(event) {
                 vis.tooltip.style("left", (event.pageX + 12) + "px")
